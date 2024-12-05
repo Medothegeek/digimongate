@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Multimedia Interaction</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #video-background, #background-video2, #main-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    #background-video2, #main-video {
+      display: none;
+    }
+
+    #menu, #menu-png {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    input[type="text"], input[type="checkbox"] {
+      width: 200px;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: rgba(255, 255, 255, 0.7);
+      border: none;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #png-display {
+      position: absolute;
+      z-index: 1;
+      display: none;  /* Initially hidden */
+      cursor: grab;
+    }
+  </style>
+</head>
+<body>
+  <video id="video-background" autoplay muted loop>
+    <source src="Background.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <video id="background-video2" autoplay muted loop>
+    <source src="Background2.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <video id="main-video">
+    <source src="" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <div id="menu">
+    <h3>Enter Video Name:</h3>
+    <input type="text" id="video-name" placeholder="Enter video name">
+    <h3>Assign a letter to trigger:</h3>
+    <input type="text" id="video-key" placeholder="Enter a letter">
+    <label>
+      <input type="checkbox" id="loop-video"> Loop Video
+    </label>
+    <br>
+    <button id="load-video">Load Video</button>
+  </div>
+
+  <div id="menu-png">
+    <h3>Enter PNG Name:</h3>
+    <input type="text" id="png-name" placeholder="Enter PNG name">
+    <h3>Assign a letter to trigger:</h3>
+    <input type="text" id="png-key" placeholder="Enter a letter">
+    <label>
+      <input type="checkbox" id="digivolve-effect"> Apply Digivolve Effect
+    </label>
+    <br>
+    <button id="load-png">Load PNG</button>
+  </div>
+
+  <img id="png-display" src="" alt="Dynamic PNG">
+
+  <script>
+    const videoBackground = document.getElementById('video-background');
+    const backgroundVideo2 = document.getElementById('background-video2');
+    const mainVideo = document.getElementById('main-video');
+    const menu = document.getElementById('menu');
+    const menuPng = document.getElementById('menu-png');
+    const videoNameInput = document.getElementById('video-name');
+    const videoKeyInput = document.getElementById('video-key');
+    const loopCheckbox = document.getElementById('loop-video');
+    const loadVideoButton = document.getElementById('load-video');
+    const pngNameInput = document.getElementById('png-name');
+    const pngKeyInput = document.getElementById('png-key');
+    const digivolveCheckbox = document.getElementById('digivolve-effect');
+    const loadPngButton = document.getElementById('load-png');
+    const pngDisplay = document.getElementById('png-display');
+    const audioGateOpen = new Audio('gate_open.mp3');
+    let currentBackground = 'Background.mp4';
+    let assignedVideoKey = '';
+    let loopVideo = false;
+    let assignedPngKey = '';
+    let digivolveEnabled = false;
+    let isPngVisible = false;
+    let videoQueue = [];
+
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'Space') {
+        audioGateOpen.play();
+        if (currentBackground === 'Background.mp4') {
+          videoBackground.style.display = 'none';
+          backgroundVideo2.style.display = 'block';
+          currentBackground = 'Background2.mp4';
+        } else {
+          backgroundVideo2.style.display = 'none';
+          videoBackground.style.display = 'block';
+          currentBackground = 'Background.mp4';
+        }
+      }
+
+      if (event.key.toUpperCase() === 'M') {
+        menu.style.display = menu.style.display === 'none' || menu.style.display === '' ? 'block' : 'none';
+      }
+
+      if (event.key.toUpperCase() === assignedVideoKey) {
+        mainVideo.style.display = 'block';
+        mainVideo.play();
+        if (!loopVideo) {
+          mainVideo.onended = () => {
+            mainVideo.style.display = 'none';
+            if (currentBackground === 'Background2.mp4') {
+              backgroundVideo2.style.display = 'block';
+            } else {
+              videoBackground.style.display = 'block';
+            }
+          };
+        }
+      }
+
+      if (event.key.toUpperCase() === 'N') {
+        menuPng.style.display = menuPng.style.display === 'none' || menuPng.style.display === '' ? 'block' : 'none';
+      }
+
+      if (event.key.toUpperCase() === assignedPngKey) {
+        if (isPngVisible) {
+          pngDisplay.style.display = 'none';
+          isPngVisible = false;
+        } else {
+          pngDisplay.style.display = 'block';
+          isPngVisible = true;
+        }
+      }
+    });
+
+    loadVideoButton.addEventListener('click', () => {
+      const videoName = videoNameInput.value.trim().toLowerCase();
+      const videoKey = videoKeyInput.value.trim().toUpperCase();
+      loopVideo = loopCheckbox.checked;
+
+      if (videoName && videoKey.length === 1 && /^[A-Z]$/.test(videoKey)) {
+        assignedVideoKey = videoKey;
+        mainVideo.src = `${videoName}.mp4`;
+        mainVideo.loop = loopVideo;
+        menu.style.display = 'none';
+      } else {
+        alert('Please enter a valid video name and a single letter.');
+      }
+    });
+
+    loadPngButton.addEventListener('click', () => {
+      const pngName = pngNameInput.value.trim().toLowerCase();
+      const pngKey = pngKeyInput.value.trim().toUpperCase();
+      digivolveEnabled = digivolveCheckbox.checked;
+
+      if (pngName && pngKey.length === 1 && /^[A-Z]$/.test(pngKey)) {
+        assignedPngKey = pngKey;
+        pngDisplay.src = `${pngName}.png`;
+        menuPng.style.display = 'none';
+      } else {
+        alert('Please enter a valid PNG name and a single letter.');
+      }
+    });
+
+    document.addEventListener('mousemove', (event) => {
+      if (isPngVisible) {
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        const pngWidth = pngDisplay.width;
+        const pngHeight = pngDisplay.height;
+        
+        pngDisplay.style.left = `${mouseX - pngWidth / 2}px`;
+        pngDisplay.style.top = `${mouseY - pngHeight / 2}px`;
+      }
+    });
+
+    pngDisplay.addEventListener('click', () => {
+      if (digivolveEnabled) {
+        pngDisplay.style.display = 'none';
+        const pngName = pngNameInput.value.trim().toLowerCase();
+        videoQueue = [`${pngName}.mp4`, `${pngName}2.mp4`, `${pngName}3.mp4`];
+        playNextVideo();
+      } else {
+        pngDisplay.style.cursor = 'default';
+        isPngVisible = false;
+      }
+    });
+
+    function playNextVideo() {
+      if (videoQueue.length === 0) {
+        mainVideo.loop = true;
+        mainVideo.play();
+        return;
+      }
+
+      const videoName = videoQueue.shift();
+      mainVideo.src = `${videoName}`;
+      mainVideo.style.display = 'block';
+      mainVideo.play();
+
+      mainVideo.onended = () => {
+        playNextVideo();
+      };
+    }
+  </script>
+</body>
+</html>
